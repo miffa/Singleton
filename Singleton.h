@@ -19,7 +19,7 @@
 namespace libccplus
 {
 	using namespace libccplus;
-	class CLock;
+	class Lock;
 	
 	template<typename T>
 	class Singleton
@@ -29,45 +29,29 @@ namespace libccplus
 		typedef Singleton<T> parent_t;
 	protected:
 		Singleton()
-		{
-		}
-	private:
-	#ifdef _GET_INSTANCE_2_
+		{}
+	#ifdef _GET_INSTANCE_OBJECT_POINT_SAFE_
 		~Singleton()
 		{
-			if (object_ != NULL)
+			if ( object_ != nullptr )
 			{
+				lock.enter();
 				delete object_;
+				object_ = NULL;
+				lock.leave();
 			}
-			object_ = NULL;
 		}
 	#endif
 
-	#ifdef _GET_INSTANCE_3_
-		~Singleton()
-		{
-			lock.enter();
-			if ( NULL != object_)
-			{
-				delete object_;
-			}
-			object_ = NULL;
-			lock.leave();
-		}
-	#endif
-
-	#ifdef _GET_INSTANCE_1_
+	#ifdef _GET_INSTANCE_OBJECT_REFERENCE_
 		~Singleton()
 		{}
 	#endif
 
 	private:
-		Singleton(const Singleton& rhs)
-		{}
-		Singleton& operator = (const Singleton& rhs)
-		{}
+		DISALLOW_COPY_AND_ASSIGN(Singleton);
 	public:
-		#ifdef _GET_INSTANCE_1_	
+		#ifdef _GET_INSTANCE_OBJECT_REFERENCE_	
 			static T& getInstance()	 //return class object reference,single thread safe
 			{
 				static T object_;	
@@ -75,27 +59,14 @@ namespace libccplus
 			}
 		#endif 
 
-		#ifdef _GET_INSTANCE_2_
-			static T* getInstance()	 //return class object point,single thread safe
-			{
-				if (object_ == NULL)
-				{
-					object_ = new T;
-				}
-				return object_;
-			}
-			static void atExit()
-			{
-				if (object_ != NULL)
-				{
-					delete object_;
-				}
-				object_ = NULL;
-			}
-		#endif
-		#ifdef _GET_INSTANCE_3_	//return class object or point,multithread safe
+		#ifdef _GET_INSTANCE_OBJECT_POINT_SAFE_	//return class object or point,multithread safe
 			static T* getInstance()
 			{
+				if ( object_ != nullptr )
+				{
+					return object_;
+				}
+
 				lock.enter();
 				if (object_ == NULL)
 				{
@@ -108,8 +79,8 @@ namespace libccplus
 
 	private:
 		static T* object_;
-		#ifdef _GET_INSTANCE_3_
-			libccplus::CLock lock;
+		#ifdef _GET_INSTANCE_OBJECT_POINT_SAFE_
+			libccplus::Lock lock;
 		#endif
 	};
 }
